@@ -7,26 +7,43 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="header">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Harvard_University_coat_of_arms.svg/1200px-Harvard_University_coat_of_arms.svg.png" alt="WeChat Logo" class="logo" />
+    <div id="online-indicator" style="display:flex;align-items:center;gap:8px;position:absolute;right:32px;">
+      <span id="online-light" style="display:inline-block;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle,#00ff6a 60%,#0f0 100%);box-shadow:0 0 8px 2px #00ff6a,0 0 2px #0f0;animation:shine 1.2s infinite alternate;"></span>
+      <span id="online-count" style="color:#bababa;font-weight:bold;font-size:1.08em;">0 Online</span>
+    </div>
+  </div>
   <div class="chat-container">
     <h1>WeChat</h1>
     <div id="auth-section">
       <form id="auth-form" autocomplete="off">
-        <input id="password" type="password" placeholder="Enter password" required />
-        <input id="username" placeholder="Pick a username" required />
+        <input id="password" type="password" placeholder="Enter Password" required />
+        <input id="username" placeholder="Username" required />
         <button>Enter Chat</button>
       </form>
       <div id="auth-error" style="color:red; display:none; text-align:center; margin-bottom:10px;">Wrong password or username!</div>
     </div>
-    <div id="chat-section" style="display:none;">
+    <div id="chat-section" style="display:none;flex:1;flex-direction:column;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
         <label for="color-picker" style="font-size:0.95em;">Chat Color:</label>
         <input type="color" id="color-picker" value="#0984e3" style="width:32px;height:32px;border:none;cursor:pointer;" />
       </div>
-      <ul id="messages"></ul>
-      <form id="form" autocomplete="off">
+      <ul id="messages" style="flex:1 1 auto;"></ul>
+      <form id="form" autocomplete="off" style="display:flex;gap:8px;align-items:center;margin-top:auto;">
         <input id="input" autocomplete="off" placeholder="Type a message..." />
-        <button>Send</button>
+        <input type="file" id="file-input" accept="image/*,image/gif" style="display:none;" />
+        <button type="button" id="upload-btn" title="Send Image/GIF">📷</button>
+        <button type="button" id="gif-btn" title="Send GIF">GIF</button>
+        <button type="button" id="emoji-btn" title="Send Emoji">😊</button>
+        <button type="submit">Send</button>
       </form>
+      <div id="gif-picker" style="display:none;position:absolute;z-index:10;background:#23262f;padding:12px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.18);top:60px;left:50%;transform:translateX(-50%);max-width:320px;">
+        <!-- Preset GIFs will be inserted here -->
+      </div>
+      <div id="emoji-picker" style="display:none;position:absolute;z-index:10;background:#23262f;padding:12px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.18);top:60px;left:60%;transform:translateX(-50%);max-width:320px;">
+        <!-- Preset Emojis will be inserted here -->
+      </div>
     </div>
   </div>
   <script src="/socket.io/socket.io.js"></script>
