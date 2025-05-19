@@ -19,6 +19,32 @@ body {
   padding: 0;
 }
 
+@keyframes shine {
+  0% { box-shadow: 0 0 8px 2px #00ff6a,0 0 2px #0f0; }
+  100% { box-shadow: 0 0 16px 6px #00ff6a,0 0 4px #0f0; }
+}
+
+.header {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 24px;
+  background: #23262f; /* Dark grey */
+  padding: 18px 0 18px 0;
+  border-bottom: 1px solid #353b48;
+  position: relative;
+}
+
+.logo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  background: #fff;
+}
+
 .chat-container {
   max-width: 400px;
   margin: 40px auto;
@@ -29,6 +55,16 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 500px;
+  height: 80vh;
+  position: relative;
+}
+
+#chat-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
 }
 
 h1 {
@@ -41,9 +77,10 @@ h1 {
   list-style: none;
   padding: 0;
   margin: 0 0 16px 0;
-  flex: 1;
+  flex: 1 1 auto;
   overflow-y: auto;
-  max-height: 320px;
+  max-height: none;
+  min-height: 0;
 }
 
 #messages li {
@@ -61,6 +98,43 @@ h1 {
 #form {
   display: flex;
   gap: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: auto;
+  background: var(--chat-container-bg);
+  padding-bottom: 4px;
+  position: relative;
+  z-index: 1;
+}
+
+#form input[type="file"] {
+  display: none;
+}
+
+#form input[type="text"], #input {
+  flex: 1 1 120px;
+  min-width: 0;
+  max-width: 180px;
+}
+
+#form button {
+  flex: 0 0 auto;
+  min-width: 38px;
+  padding: 8px 10px;
+  font-size: 1.1em;
+}
+
+@media (max-width: 500px) {
+  #form {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  #form button, #form input[type="text"], #input {
+    width: 100%;
+    max-width: 100%;
+  }
 }
 
 #input {
@@ -119,4 +193,30 @@ button:hover, #auth-form button:hover {
   border: 1px solid var(--chat-input-border);
   background: var(--chat-input-bg);
   box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+#gif-picker, #emoji-picker {
+  display: none;
+  position: absolute;
+  z-index: 10;
+  background: #23262f;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 320px;
+  max-height: 180px;
+  overflow-y: auto;
+  bottom: 60px;
+  top: auto;
+}
+
+@media (max-width: 500px) {
+  #gif-picker, #emoji-picker {
+    max-width: 95vw;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 100px;
+  }
 }
