@@ -1,15 +1,24 @@
 const socket = io();
 
+// Set deviceId cookie if server requests
+socket.on('set-device-id', function(deviceId) {
+  document.cookie = `deviceId=${deviceId}; path=/; max-age=31536000`;
+  // Optionally reload to ensure deviceId is sent on next auth
+  if (!document.cookie.includes(`deviceId=${deviceId}`)) {
+    location.reload();
+  }
+});
+
 const authSection = document.getElementById('auth-section');
 const authForm = document.getElementById('auth-form');
 const passwordInput = document.getElementById('password');
 const usernameInput = document.getElementById('username');
+const authColorPicker = document.getElementById('auth-color-picker');
 const authError = document.getElementById('auth-error');
 const chatSection = document.getElementById('chat-section');
 const form = document.getElementById('form');
 const input = document.getElementById('input');
 const messages = document.getElementById('messages');
-const colorPicker = document.getElementById('color-picker');
 const fileInput = document.getElementById('file-input');
 const uploadBtn = document.getElementById('upload-btn');
 const gifBtn = document.getElementById('gif-btn');
@@ -46,11 +55,15 @@ function timeAgo(timestamp) {
 if (authForm) {
   authForm.addEventListener('submit', function(e) {
     e.preventDefault();
-    console.log('Submitting auth:', passwordInput.value, usernameInput.value);
+    const prevUsername = localStorage.getItem('chat_username') || '';
+    const newUsername = usernameInput.value;
     socket.emit('auth', {
       password: passwordInput.value,
-      name: usernameInput.value
+      name: newUsername,
+      color: authColorPicker.value,
+      prevUsername // send previous username
     });
+    localStorage.setItem('chat_username', newUsername);
   });
 }
 
@@ -63,8 +76,14 @@ socket.on('auth-success', function() {
   input.focus();
 });
 
-socket.on('auth-fail', function() {
-  console.log('Auth fail');
+socket.on('auth-fail', function(data) {
+  let msg = 'Wrong password or username!';
+  if (data && data.reason === 'username') {
+    msg = 'Username is currently being used';
+  } else if (data && data.reason === 'color') {
+    msg = 'Chat color is currently being used';
+  }
+  authError.textContent = msg;
   authError.style.display = '';
   passwordInput.value = '';
   passwordInput.focus();
@@ -240,14 +259,6 @@ if (emojiBtn && emojiPicker) {
     if (emojiPicker.style.display === 'block' && !emojiPicker.contains(e.target) && e.target !== emojiBtn) {
       emojiPicker.style.display = 'none';
     }
-  });
-}
-
-// Handle color picker
-if (colorPicker) {
-  colorPicker.addEventListener('input', function() {
-    currentColor = colorPicker.value;
-    socket.emit('set color', colorPicker.value);
   });
 }
 

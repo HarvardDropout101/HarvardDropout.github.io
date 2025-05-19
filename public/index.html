@@ -20,15 +20,15 @@
       <form id="auth-form" autocomplete="off">
         <input id="password" type="password" placeholder="Enter Password" required />
         <input id="username" placeholder="Username" required />
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <label for="auth-color-picker" style="font-size:0.95em;">Chat Color:</label>
+          <input type="color" id="auth-color-picker" value="#0984e3" style="width:32px;height:32px;border:none;cursor:pointer;" required />
+        </div>
         <button>Enter Chat</button>
       </form>
-      <div id="auth-error" style="color:red; display:none; text-align:center; margin-bottom:10px;">Wrong password or username!</div>
+      <div id="auth-error" style="color:red; display:none; text-align:center; margin-bottom:10px;"></div>
     </div>
     <div id="chat-section" style="display:none;flex:1;flex-direction:column;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <label for="color-picker" style="font-size:0.95em;">Chat Color:</label>
-        <input type="color" id="color-picker" value="#0984e3" style="width:32px;height:32px;border:none;cursor:pointer;" />
-      </div>
       <ul id="messages" style="flex:1 1 auto;"></ul>
       <form id="form" autocomplete="off" style="display:flex;gap:8px;align-items:center;margin-top:auto;">
         <input id="input" autocomplete="off" placeholder="Type a message..." />

@@ -2,12 +2,15 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const cookieParser = require('cookie-parser');
+const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(cookieParser());
 
 const PASSWORD = "bruh"; // Change this to your desired password
 
@@ -19,9 +22,25 @@ const MESSAGE_LIFETIME_MS = 5 * 60 * 60 * 1000; // 5 hours in ms
 let onlineCount = 0;
 const typingUsers = new Set();
 
+// Track device sessions: { deviceId: [username1, username2, ...] }
+const deviceSessions = {};
+
+// Track last username per deviceId
+const deviceLastUsername = {};
+
 function pruneOldMessages() {
   const now = Date.now();
   messages = messages.filter(msg => now - msg.timestamp < MESSAGE_LIFETIME_MS);
+}
+
+// Helper to check if a username is already in use
+function isUsernameTaken(name) {
+  return Object.values(users).some(u => u.toLowerCase() === name.toLowerCase());
+}
+
+// Helper to check if a color is already in use
+function isColorTaken(color, socketId) {
+  return Object.entries(userColors).some(([id, c]) => c.toLowerCase() === color.toLowerCase() && id !== socketId);
 }
 
 function broadcastOnlineCount() {
@@ -29,41 +48,61 @@ function broadcastOnlineCount() {
 }
 
 io.on('connection', (socket) => {
+  // Get or assign deviceId from cookie
+  let deviceId;
+  if (socket.handshake.headers.cookie) {
+    const cookies = Object.fromEntries(socket.handshake.headers.cookie.split(';').map(c => c.trim().split('=')));
+    deviceId = cookies.deviceId;
+  }
+  if (!deviceId) {
+    deviceId = crypto.randomBytes(16).toString('hex');
+    // Send deviceId to client to set cookie
+    setTimeout(() => socket.emit('set-device-id', deviceId), 100);
+  }
+
   onlineCount++;
   broadcastOnlineCount();
   let authenticated = false;
   let username = null;
+  let previousUsernames = [];
 
-  // Helper to check if a username is already in use
-  function isUsernameTaken(name) {
-    return Object.values(users).includes(name);
-  }
-
-  // Send existing messages to new user
-  socket.on('auth', ({ password, name }) => {
-    if (password === PASSWORD && name && name.trim().length > 0 && !isUsernameTaken(name.trim())) {
-      authenticated = true;
-      username = name.trim();
-      users[socket.id] = username;
-      userColors[socket.id] = '#0984e3';
-      socket.emit('auth-success');
-      // Prune and send messages
-      pruneOldMessages();
-      socket.emit('message history', messages);
-      socket.broadcast.emit('chat message', {
+  socket.on('auth', ({ password, name, color, prevUsername }) => {
+    if (password !== PASSWORD || !name || name.trim().length === 0) {
+      socket.emit('auth-fail', { reason: 'invalid' });
+      return;
+    }
+    if (isUsernameTaken(name.trim())) {
+      socket.emit('auth-fail', { reason: 'username' });
+      return;
+    }
+    if (!color || typeof color !== 'string' || isColorTaken(color, socket.id)) {
+      socket.emit('auth-fail', { reason: 'color' });
+      return;
+    }
+    // Compare with previous username sent by client
+    let isNameChange = prevUsername && prevUsername.trim().length > 0 &&
+      prevUsername.trim().toLowerCase() !== name.trim().toLowerCase();
+    username = name.trim();
+    users[socket.id] = username;
+    userColors[socket.id] = color;
+    authenticated = true;
+    socket.emit('auth-success');
+    pruneOldMessages();
+    socket.emit('message history', messages);
+    if (isNameChange) {
+      io.emit('chat message', {
+        user: 'System',
+        text: `${prevUsername} has changed their name to ${username}.`,
+        color: '#888',
+        timestamp: Date.now()
+      });
+    } else {
+      io.emit('chat message', {
         user: 'System',
         text: `${username} joined the chat.`,
         color: '#888',
         timestamp: Date.now()
       });
-    } else {
-      socket.emit('auth-fail');
-    }
-  });
-
-  socket.on('set color', (color) => {
-    if (authenticated && typeof color === 'string') {
-      userColors[socket.id] = color;
     }
   });
 
