@@ -1,0 +1,122 @@
+:root {
+  --chat-bg: #181a20;
+  --chat-fg: #f5f6fa;
+  --chat-container-bg: #23262f;
+  --chat-border: #23262f;
+  --chat-shadow: 0 2px 8px rgba(0,0,0,0.32);
+  --chat-primary: #0984e3;
+  --chat-secondary: #353b48;
+  --chat-input-bg: #23262f;
+  --chat-input-border: #353b48;
+  --chat-error: #ff7675;
+}
+
+body {
+  background: var(--chat-bg);
+  color: var(--chat-fg);
+  font-family: 'Segoe UI', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+.chat-container {
+  max-width: 400px;
+  margin: 40px auto;
+  background: var(--chat-container-bg);
+  border-radius: 10px;
+  box-shadow: var(--chat-shadow);
+  padding: 24px 18px 12px 18px;
+  display: flex;
+  flex-direction: column;
+  min-height: 500px;
+}
+
+h1 {
+  text-align: center;
+  color: #b71c1c; /* Matrix dark red */
+  margin-bottom: 18px;
+}
+
+#messages {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px 0;
+  flex: 1;
+  overflow-y: auto;
+  max-height: 320px;
+}
+
+#messages li {
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  background: var(--chat-secondary);
+  border-radius: 6px;
+  word-break: break-word;
+}
+
+#messages li span:first-child {
+  font-weight: bold;
+}
+
+#form {
+  display: flex;
+  gap: 8px;
+}
+
+#input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--chat-input-border);
+  border-radius: 5px;
+  font-size: 1em;
+  background: var(--chat-input-bg);
+  color: var(--chat-fg);
+}
+
+button, #auth-form button {
+  background: #b71c1c; /* Matrix dark red */
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 18px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:hover, #auth-form button:hover {
+  background: #d32f2f;
+}
+
+#auth-section {
+  margin-bottom: 18px;
+}
+
+#auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+#auth-form input {
+  padding: 8px 10px;
+  border: 1px solid var(--chat-input-border);
+  border-radius: 5px;
+  font-size: 1em;
+  background: var(--chat-input-bg);
+  color: var(--chat-fg);
+}
+
+#auth-error {
+  font-size: 0.95em;
+  color: var(--chat-error) !important;
+}
+
+#color-picker {
+  vertical-align: middle;
+  border-radius: 6px;
+  border: 1px solid var(--chat-input-border);
+  background: var(--chat-input-bg);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
