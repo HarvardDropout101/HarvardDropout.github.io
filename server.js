@@ -34,9 +34,14 @@ io.on('connection', (socket) => {
   let authenticated = false;
   let username = null;
 
+  // Helper to check if a username is already in use
+  function isUsernameTaken(name) {
+    return Object.values(users).includes(name);
+  }
+
   // Send existing messages to new user
   socket.on('auth', ({ password, name }) => {
-    if (password === PASSWORD && name && name.trim().length > 0) {
+    if (password === PASSWORD && name && name.trim().length > 0 && !isUsernameTaken(name.trim())) {
       authenticated = true;
       username = name.trim();
       users[socket.id] = username;
