@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -27,6 +28,27 @@ const deviceSessions = {};
 
 // Track last username per deviceId
 const deviceLastUsername = {};
+
+// In-memory drawing state: array of {type: 'stroke'|'clear', ...}
+const DRAWING_FILE = path.join(__dirname, 'drawing.json');
+let drawingState = [];
+
+// Load drawing state from disk on server start
+try {
+  if (fs.existsSync(DRAWING_FILE)) {
+    const data = fs.readFileSync(DRAWING_FILE, 'utf8');
+    drawingState = JSON.parse(data);
+  }
+} catch (err) {
+  console.error('Failed to load drawing state:', err);
+  drawingState = [];
+}
+
+function saveDrawingState() {
+  fs.writeFile(DRAWING_FILE, JSON.stringify(drawingState), err => {
+    if (err) console.error('Failed to save drawing state:', err);
+  });
+}
 
 function pruneOldMessages() {
   const now = Date.now();
@@ -65,6 +87,9 @@ io.on('connection', (socket) => {
   let authenticated = false;
   let username = null;
   let previousUsernames = [];
+
+  // Send current drawing state to new client
+  socket.emit('drawing-state', drawingState);
 
   socket.on('auth', ({ password, name, color, prevUsername }) => {
     if (password !== PASSWORD || !name || name.trim().length === 0) {
@@ -155,9 +180,14 @@ io.on('connection', (socket) => {
 
   // Group Drawing Board events
   socket.on('draw-line', (data) => {
+    // Save stroke
+    drawingState.push({ type: 'stroke', ...data });
+    saveDrawingState();
     socket.broadcast.emit('draw-line', data);
   });
   socket.on('clear-canvas', () => {
+    drawingState.push({ type: 'clear' });
+    saveDrawingState();
     io.emit('clear-canvas');
   });
   // Drawing cursor events

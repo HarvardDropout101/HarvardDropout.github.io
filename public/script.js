@@ -507,6 +507,32 @@ socket.on('clear-canvas', () => {
   remoteCursors = {};
   renderRemoteCursors();
 });
+// Restore drawing state from server
+socket.on('drawing-state', function(state) {
+  if (!canvas || !ctx) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  myStrokes = [];
+  allStrokes = [];
+  if (!Array.isArray(state)) return;
+  for (const evt of state) {
+    if (evt.type === 'clear') {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      myStrokes = [];
+      allStrokes = [];
+    } else if (evt.type === 'stroke') {
+      // Draw the stroke
+      ctx.strokeStyle = evt.color;
+      ctx.lineWidth = evt.size;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(evt.x1, evt.y1);
+      ctx.lineTo(evt.x2, evt.y2);
+      ctx.stroke();
+      ctx.closePath();
+      allStrokes.push({ x1: evt.x1, y1: evt.y1, x2: evt.x2, y2: evt.y2, color: evt.color, size: evt.size, user: 'other' });
+    }
+  }
+});
 // Enable/disable drawing on auth
 window.addEventListener('DOMContentLoaded', () => {
   checkDrawingAuth();
