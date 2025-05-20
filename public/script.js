@@ -74,6 +74,9 @@ socket.on('auth-success', function() {
   chatSection.style.display = '';
   authError.style.display = 'none';
   input.focus();
+  checkDrawingAuth();
+  showDrawingContainer();
+  if (openDrawTab) openDrawTab.style.display = 'none';
 });
 
 socket.on('auth-fail', function(data) {
@@ -87,6 +90,10 @@ socket.on('auth-fail', function(data) {
   authError.style.display = '';
   passwordInput.value = '';
   passwordInput.focus();
+  authenticated = false;
+  checkDrawingAuth();
+  hideDrawingContainer();
+  if (openDrawTab) openDrawTab.style.display = 'none';
 });
 
 // Show message history on login
@@ -317,4 +324,221 @@ socket.on('online count', function(count) {
   if (onlineCount) {
     onlineCount.textContent = `${count} online`;
   }
+});
+
+// === Group Drawing Board ===
+const drawingContainer = document.getElementById('drawing-container');
+const drawingHeader = document.getElementById('drawing-header');
+const drawingMinBtn = null; // Remove minimize button logic
+const drawingCloseBtn = document.getElementById('drawing-close-btn');
+const openDrawTab = document.getElementById('open-draw-tab');
+const canvas = document.getElementById('group-canvas');
+const ctx = canvas ? canvas.getContext('2d') : null;
+const brushColorInput = document.getElementById('brush-color');
+const brushSizeInput = document.getElementById('brush-size');
+const clearBtn = document.getElementById('clear-canvas');
+const undoBtn = document.getElementById('undo-canvas');
+// Per-user stroke history for undo
+let myStrokes = [];
+let allStrokes = [];
+let drawing = false;
+let lastX = 0, lastY = 0;
+let brushColor = brushColorInput ? brushColorInput.value : '#0984e3';
+let brushSize = brushSizeInput ? parseInt(brushSizeInput.value) : 6;
+let drawingEnabled = false;
+let remoteCursors = {};
+
+function setDrawingEnabled(enabled) {
+  drawingEnabled = enabled;
+  if (canvas) canvas.style.pointerEvents = enabled ? 'auto' : 'none';
+  if (brushColorInput) brushColorInput.disabled = !enabled;
+  if (brushSizeInput) brushSizeInput.disabled = !enabled;
+  if (clearBtn) clearBtn.disabled = !enabled;
+  if (undoBtn) undoBtn.disabled = !enabled;
+  if (drawingContainer) drawingContainer.style.opacity = enabled ? '1' : '0.6';
+}
+
+// Only allow drawing if logged in
+function checkDrawingAuth() {
+  setDrawingEnabled(authenticated);
+}
+
+// Draggable/closable logic
+if (drawingHeader && drawingContainer) {
+  let offsetX = 0, offsetY = 0, isDragging = false;
+  drawingHeader.addEventListener('mousedown', (e) => {
+    if (e.target.tagName === 'BUTTON') return;
+    isDragging = true;
+    const rect = drawingContainer.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    drawingContainer.style.left = (e.clientX - offsetX) + 'px';
+    drawingContainer.style.top = (e.clientY - offsetY) + 'px';
+    drawingContainer.style.right = 'auto';
+    drawingContainer.style.position = 'fixed';
+  });
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+    document.body.style.userSelect = '';
+  });
+}
+if (drawingCloseBtn && drawingContainer) {
+  drawingCloseBtn.addEventListener('click', () => {
+    hideDrawingContainer();
+    remoteCursors = {};
+    renderRemoteCursors();
+  });
+}
+if (openDrawTab) {
+  openDrawTab.addEventListener('click', () => {
+    showDrawingContainer();
+  });
+}
+// Restore if closed/minimized on login
+function showDrawingContainer() {
+  if (drawingContainer) {
+    drawingContainer.classList.remove('drawing-hidden');
+    drawingContainer.classList.remove('drawing-minimized');
+  }
+  if (openDrawTab) openDrawTab.style.display = 'none';
+}
+function hideDrawingContainer() {
+  if (drawingContainer) drawingContainer.classList.add('drawing-hidden');
+  if (openDrawTab) openDrawTab.style.display = '';
+}
+// Drawing events
+if (canvas && ctx) {
+  canvas.addEventListener('mousedown', (e) => {
+    if (!drawingEnabled) return;
+    drawing = true;
+    [lastX, lastY] = [e.offsetX, e.offsetY];
+  });
+  canvas.addEventListener('mouseup', () => { drawing = false; });
+  canvas.addEventListener('mouseout', () => { drawing = false; });
+  canvas.addEventListener('mousemove', (e) => {
+    if (!drawing || !drawingEnabled) return;
+    const x = e.offsetX, y = e.offsetY;
+    drawLine(lastX, lastY, x, y, brushColor, brushSize, true);
+    [lastX, lastY] = [x, y];
+    socket.emit('drawing-cursor', { x, y });
+  });
+}
+function drawLine(x1, y1, x2, y2, color, size, emit, recordStroke = true) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = size;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.closePath();
+  if (emit) {
+    socket.emit('draw-line', { x1, y1, x2, y2, color, size });
+  }
+  if (recordStroke && drawingEnabled) {
+    // Only record if this is the local user's stroke
+    myStrokes.push({ x1, y1, x2, y2, color, size });
+    allStrokes.push({ x1, y1, x2, y2, color, size, user: 'me' });
+  } else if (recordStroke) {
+    // For remote strokes
+    allStrokes.push({ x1, y1, x2, y2, color, size, user: 'other' });
+  }
+}
+socket.on('draw-line', ({ x1, y1, x2, y2, color, size }) => {
+  if (ctx) drawLine(x1, y1, x2, y2, color, size, false, true);
+});
+if (undoBtn) {
+  undoBtn.addEventListener('click', () => {
+    if (!drawingEnabled || myStrokes.length === 0) return;
+    myStrokes.pop();
+    // Remove the last 'me' stroke from allStrokes
+    let idx = -1;
+    for (let i = allStrokes.length - 1; i >= 0; i--) {
+      if (allStrokes[i].user === 'me') {
+        idx = i;
+        break;
+      }
+    }
+    if (idx !== -1) allStrokes.splice(idx, 1);
+    // Redraw everything
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const s of allStrokes) {
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = s.size;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(s.x1, s.y1);
+      ctx.lineTo(s.x2, s.y2);
+      ctx.stroke();
+      ctx.closePath();
+    }
+    // Notify others to re-sync (optional: not needed for local undo)
+  });
+}
+if (brushColorInput) {
+  brushColorInput.addEventListener('input', (e) => {
+    brushColor = e.target.value;
+  });
+}
+if (brushSizeInput) {
+  brushSizeInput.addEventListener('input', (e) => {
+    brushSize = parseInt(e.target.value);
+  });
+}
+if (clearBtn) {
+  clearBtn.addEventListener('click', () => {
+    if (!drawingEnabled) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    myStrokes = [];
+    allStrokes = [];
+    socket.emit('clear-canvas');
+    remoteCursors = {};
+    renderRemoteCursors();
+  });
+}
+socket.on('clear-canvas', () => {
+  if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  myStrokes = [];
+  allStrokes = [];
+  remoteCursors = {};
+  renderRemoteCursors();
+});
+// Enable/disable drawing on auth
+window.addEventListener('DOMContentLoaded', () => {
+  checkDrawingAuth();
+  hideDrawingContainer();
+  if (openDrawTab) openDrawTab.style.display = 'none';
+});
+
+function renderRemoteCursors() {
+  // Remove old cursor overlays
+  let overlays = document.querySelectorAll('.remote-cursor');
+  overlays.forEach(el => el.remove());
+  for (const id in remoteCursors) {
+    const c = remoteCursors[id];
+    if (!c || !c.x || !c.y || !c.username) continue;
+    const cursorDiv = document.createElement('div');
+    cursorDiv.className = 'remote-cursor';
+    cursorDiv.style.position = 'absolute';
+    cursorDiv.style.left = (canvas.offsetLeft + c.x - 8) + 'px';
+    cursorDiv.style.top = (canvas.offsetTop + c.y - 8) + 'px';
+    cursorDiv.style.pointerEvents = 'none';
+    cursorDiv.style.zIndex = 30;
+    cursorDiv.innerHTML = `<svg width="16" height="16" style="vertical-align:middle;"><circle cx="8" cy="8" r="6" fill="${c.color || '#0984e3'}" stroke="#23262f" stroke-width="2"/></svg><span style="background:#23262f;color:${c.color || '#0984e3'};padding:2px 7px;border-radius:6px;font-size:0.95em;margin-left:2px;">${c.username}</span>`;
+    canvas.parentNode.appendChild(cursorDiv);
+  }
+}
+socket.on('drawing-cursor', ({ id, x, y, username, color }) => {
+  remoteCursors[id] = { x, y, username, color };
+  renderRemoteCursors();
+  // Remove after 1.5s if no update
+  clearTimeout(remoteCursors[id]?.timeout);
+  remoteCursors[id].timeout = setTimeout(() => {
+    delete remoteCursors[id];
+    renderRemoteCursors();
+  }, 1500);
 });

@@ -153,6 +153,26 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Group Drawing Board events
+  socket.on('draw-line', (data) => {
+    socket.broadcast.emit('draw-line', data);
+  });
+  socket.on('clear-canvas', () => {
+    io.emit('clear-canvas');
+  });
+  // Drawing cursor events
+  socket.on('drawing-cursor', ({ x, y }) => {
+    const user = users[socket.id];
+    const color = userColors[socket.id];
+    io.emit('drawing-cursor', {
+      id: socket.id,
+      x,
+      y,
+      username: user,
+      color: color
+    });
+  });
+
   socket.on('disconnect', () => {
     if (authenticated && username) {
       typingUsers.delete(username);

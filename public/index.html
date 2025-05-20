@@ -9,9 +9,10 @@
 <body>
   <div class="header">
     <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Harvard_University_coat_of_arms.svg/1200px-Harvard_University_coat_of_arms.svg.png" alt="WeChat Logo" class="logo" />
-    <div id="online-indicator" style="display:flex;align-items:center;gap:8px;position:absolute;right:32px;">
+    <div id="nav-menu" style="position:absolute;right:32px;top:18px;display:flex;align-items:center;gap:16px;">
       <span id="online-light" style="display:inline-block;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle,#00ff6a 60%,#0f0 100%);box-shadow:0 0 8px 2px #00ff6a,0 0 2px #0f0;animation:shine 1.2s infinite alternate;"></span>
       <span id="online-count" style="color:#bababa;font-weight:bold;font-size:1.08em;">0 Online</span>
+      <button id="open-draw-tab" style="display:none;background:#353b48;color:#fff;border:none;border-radius:6px;padding:6px 16px;font-size:1em;cursor:pointer;">Draw</button>
     </div>
   </div>
   <div class="chat-container">
@@ -43,6 +44,21 @@
       </div>
       <div id="emoji-picker" style="display:none;position:absolute;z-index:10;background:#23262f;padding:12px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.18);top:60px;left:60%;transform:translateX(-50%);max-width:320px;">
         <!-- Preset Emojis will be inserted here -->
+      </div>
+    </div>
+    <div class="drawing-container drawing-hidden" id="drawing-container">
+      <div class="drawing-header" id="drawing-header">
+        <span class="drawing-title">Group Drawing</span>
+        <span>
+          <button id="drawing-close-btn" title="Close">×</button>
+        </span>
+      </div>
+      <canvas id="group-canvas" width="400" height="400"></canvas>
+      <div class="drawing-controls">
+        <label>Brush Color: <input type="color" id="brush-color" value="#0984e3"></label>
+        <label>Brush Size: <input type="range" id="brush-size" min="2" max="32" value="6"></label>
+        <button id="clear-canvas">Clear</button>
+        <button id="undo-canvas">Undo</button>
       </div>
     </div>
   </div>
