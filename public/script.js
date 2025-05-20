@@ -529,7 +529,7 @@ socket.on('drawing-state', function(state) {
       ctx.lineTo(evt.x2, evt.y2);
       ctx.stroke();
       ctx.closePath();
-      allStrokes.push({ x1: evt.x1, y1: evt.y1, x2: evt.x2, y2: evt.y2, color: evt.color, size: evt.size, user: 'other' });
+      allStrokes.push({ x1: evt.x1, y1: evt.y1, x2: evt.x2, y2: evt.x2, color: evt.color, size: evt.size, user: 'other' });
     }
   }
 });
@@ -546,16 +546,20 @@ function renderRemoteCursors() {
   overlays.forEach(el => el.remove());
   for (const id in remoteCursors) {
     const c = remoteCursors[id];
-    if (!c || !c.x || !c.y || !c.username) continue;
-    const cursorDiv = document.createElement('div');
+    if (!c || typeof c.x !== 'number' || typeof c.y !== 'number' || !c.username) continue;
+    let cursorDiv = document.createElement('div');
     cursorDiv.className = 'remote-cursor';
     cursorDiv.style.position = 'absolute';
     cursorDiv.style.left = (canvas.offsetLeft + c.x - 8) + 'px';
     cursorDiv.style.top = (canvas.offsetTop + c.y - 8) + 'px';
     cursorDiv.style.pointerEvents = 'none';
     cursorDiv.style.zIndex = 30;
-    cursorDiv.innerHTML = `<svg width="16" height="16" style="vertical-align:middle;"><circle cx="8" cy="8" r="6" fill="${c.color || '#0984e3'}" stroke="#23262f" stroke-width="2"/></svg><span style="background:#23262f;color:${c.color || '#0984e3'};padding:2px 7px;border-radius:6px;font-size:0.95em;margin-left:2px;">${c.username}</span>`;
+    cursorDiv.style.transition = 'left 0.13s linear, top 0.13s linear, opacity 0.18s'; // Smooth movement and fade
+    cursorDiv.style.opacity = '0.92';
+    cursorDiv.innerHTML = `<svg width="16" height="16" style="vertical-align:middle;"><circle cx="8" cy="8" r="6" fill="${c.color || '#0984e3'}" stroke="#23262f" stroke-width="2"/></svg><span style="background:#23262f;color:${c.color || '#0984e3'};padding:2px 7px;border-radius:6px;font-size:0.95em;margin-left:2px;box-shadow:0 2px 8px rgba(0,0,0,0.18);transition:opacity 0.2s;">${c.username}</span>`;
     canvas.parentNode.appendChild(cursorDiv);
+    // Animate fade-in if new
+    setTimeout(() => { cursorDiv.style.opacity = '1'; }, 10);
   }
 }
 socket.on('drawing-cursor', ({ id, x, y, username, color }) => {

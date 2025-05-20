@@ -19,7 +19,7 @@ const PASSWORD = "bruh"; // Change this to your desired password
 const users = {};
 const userColors = {};
 let messages = [];
-const MESSAGE_LIFETIME_MS = 5 * 60 * 60 * 1000; // 5 hours in ms
+const MESSAGE_LIFETIME_MS = 12 * 60 * 60 * 1000; // 12 hours in ms
 let onlineCount = 0;
 const typingUsers = new Set();
 
